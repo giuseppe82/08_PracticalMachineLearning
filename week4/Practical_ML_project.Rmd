@@ -205,7 +205,7 @@ confusionMatrix(cvPred, crossValidation$classe)
 ```
 
 # 7. Predicted Results
-We are fianlly ready for making predictions on the real testing set
+We are finally ready for making predictions on the real testing set
 ```{r}
 testingPred <- predict(modFit, test_nzv)
 testingPred
