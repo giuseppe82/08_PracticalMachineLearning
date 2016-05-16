@@ -131,6 +131,39 @@ We would like to chec the accuracy of our algorithm, by looking at the training 
 trainingPred <- predict(modFit, trainingSet)
 confusionMatrix(trainingPred, trainingSet$classe)
 ```
+```{r, eval = FALSE}
+## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction    A    B    C    D    E
+##          A 4185    0    0    0    0
+##          B    0 2848    0    0    0
+##          C    0    0 2567    0    0
+##          D    0    0    0 2412    0
+##          E    0    0    0    0 2706
+## 
+## Overall Statistics
+##                                      
+##                Accuracy : 1          
+##                  95% CI : (0.9997, 1)
+##     No Information Rate : 0.2843     
+##     P-Value [Acc > NIR] : < 2.2e-16  
+##                                      
+##                   Kappa : 1          
+##  Mcnemar's Test P-Value : NA         
+## 
+## Statistics by Class:
+## 
+##                      Class: A Class: B Class: C Class: D Class: E
+## Sensitivity            1.0000   1.0000   1.0000   1.0000   1.0000
+## Specificity            1.0000   1.0000   1.0000   1.0000   1.0000
+## Pos Pred Value         1.0000   1.0000   1.0000   1.0000   1.0000
+## Neg Pred Value         1.0000   1.0000   1.0000   1.0000   1.0000
+## Prevalence             0.2843   0.1935   0.1744   0.1639   0.1839
+## Detection Rate         0.2843   0.1935   0.1744   0.1639   0.1839
+## Detection Prevalence   0.2843   0.1935   0.1744   0.1639   0.1839
+## Balanced Accuracy      1.0000   1.0000   1.0000   1.0000   1.0000
+```
 
 and cross validation set, respectively: 
 ```{r}
