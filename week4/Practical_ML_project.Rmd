@@ -1,0 +1,146 @@
+---
+title: "Practical Machine Learning Course Project"
+author: "Giuseppe Di Bernardo"
+date: "May 16, 2016"
+output: html_document
+---
+
+
+# 1. Downloading the datasets 
+Let's set working directory (absolute path) 
+```{r}
+setwd("/Users/joedibernardo/Projects/DATASCIENCE/08_PracticalMachineLearning/week4")
+
+# 1. Check if file exists, and download file 
+filename_1 <- "pml-training.csv"
+filename_2 <- "pml-testing.csv"
+
+if(!file.exists(filename_1)){
+  fileUrl <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+  download.file(fileUrl, destfile = filename_1, method = "curl")
+  dateDownloaded <- date() # record the download date
+}
+
+if(!file.exists(filename_2)){
+  fileUrl <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+  download.file(fileUrl, destfile = filename_2, method = "curl")
+  dateDownloaded <- date() # record the download date
+}
+```
+
+# 2. Loading the data
+... and have a quick look at the variables
+```{r}
+training_raw <- read.csv(filename_1, header = TRUE, sep = ",", 
+                         stringsAsFactors = FALSE, 
+                         na.strings = c("","NA","#DIV/0!"))
+
+testing_raw  <- read.csv(filename_2, header = TRUE, sep = ",", 
+                         stringsAsFactors = FALSE, 
+                         na.strings = c("","NA","#DIV/0!"))
+```
+
+In the case of the training set, we are dealing with a data frame with $19622$ observations, corresponding to $160$ variables: 
+```{r}
+str(training_raw)
+```
+
+# 3. Cleaning the data
+The brief investigation of the dataset structure suggests us to conveniently remove the value of useless variables (e.g. `kurtosis_roll_belt`, `max_picth_belt`, `var_total_accel_belt`, etc.), so that our machine learning algorithms will not run on the features containing missing values (`NA`). I prefer following way to check whether columns contain any `NAs`:
+```{r}
+col.has.na_1 <- apply(training_raw, 2, function(x){any(is.na(x))})
+col.has.na_2 <- apply(testing_raw, 2, function(x){any(is.na(x))})
+```
+
+This returns logical vector with values denoting whether there is any `NA` in a column. You can use it to see how many columns you'll have to drop, and eventually drop them:
+```{r}
+sum(col.has.na_1)
+training_noNA <- training_raw[,!col.has.na_1]
+#sum(col.has.na_2)
+testing_noNA <- testing_raw[,!col.has.na_2]
+```
+
+This means that only $60$ out of $160$ variables present in the initial training set have complete data. From the structure of the data, we can see that the first column (`X`) corresponds to the row index of the `.csv` files. Moreover, the next $6$ variables `user_name`, `raw_timestamp_part_1`, `raw_timestamp_part_2`, `cvtd_timestamp`, `new_window`, `num_window` are simply administrative parameters and are $\textit{unlikely}$ to help us predict the activity the subjects are performing. 
+Therefore, we are going to remove those columns from our dataset: 
+```{r}
+training_filtered <- training_noNA[, -(1:7)]
+testing_filtered  <- testing_noNA[, -(1:7)]
+```
+
+# 4. Preprocessing the predictors
+Some predictors may have strange distributions (i.e. skewed) and may need to be transformed to be more useful for prediction algorithm. The function preProcess estimates the required parameters, and estimates whatever it requires from a specific data set (e.g. the training set) and then applies these transformations to any data set without recomputing the values:
+
+```{r}
+library(caret)
+# return the indices array for the variables of class:numeric
+w <- which(lapply(training_filtered, class) %in% "numeric") 
+# create preProcess object for all 27 numeric predictors
+preObj <- preProcess(training_filtered[,w], 
+                     method = c('knnImpute', 'center', 'scale'))
+# you can store the result of the preProcess function as an object and apply it to the train and test sets using the predict function
+train_pc <- predict(preObj, training_filtered[,w])
+test_pc <- predict(preObj, testing_filtered[,w])
+
+# adding the classe (non-nuneric) variable
+train_pc$classe <- training_filtered$classe
+```
+
+# 4. Zero- and Near Zero-Variance Predictors
+In some situations, the data generating mechanism can create predictors that only have a single unique value (i.e. a "zero-variance predictor"). For many models (excluding tree-based models), this may cause the model to crash or the fit to be unstable. These "near-zero-variance" predictors may need to be identified and eliminated prior to modeling:
+```{r}
+nzv <-nearZeroVar(train_pc, saveMetrics= TRUE)
+train_nzv <- train_pc[, nzv$nzv==FALSE]
+
+nzv <-nearZeroVar(test_pc, saveMetrics= TRUE)
+test_nzv <- test_pc[, nzv$nzv==FALSE]
+```
+
+# 5. Cross Validation
+We now want to: 
+
+- split the training set into ssub-training/test sets
+
+- build a model on sub-training set (typically $80\%$ of the original training set)
+
+- evaluate on sub-test set (typically $20\%$ of the training set)
+
+- repeat and average estimated errors
+
+For simplicity, a randomly sampled test set is subsetted out from the original training set. 
+```{r}
+set.seed(12536)
+library(randomForest)
+inTrain <- createDataPartition(y = train_nzv$classe, p = 3/4, list = FALSE)
+trainingSet <- train_nzv[inTrain,]
+crossValidation <- train_nzv[-inTrain,]
+```
+
+# 5. Training model
+We can build our classification and regression models by applying the `randomForest` algorithm, which is highly accurate, and using the `crossValidation` set as train control method. To increase the computational effeciency, we let the `caret` packages to leverage the parallel processing frameworks in R.  
+```{r}
+library(doMC)
+registerDoMC(cores = 4)
+# All subsequent models are then run in parallel 
+modFit <- train(classe ~ ., data = trainingSet, method = "rf", 
+                trControl=trainControl(method='cv'))
+```
+
+# 6. Accuracy on training and cross validation set 
+We would like to chec the accuracy of our algorithm, by looking at the training set:
+```{r}
+trainingPred <- predict(modFit, trainingSet)
+confusionMatrix(trainingPred, trainingSet$classe)
+```
+
+and cross validation set, respectively: 
+```{r}
+cvPred <- predict(modFit, crossValidation)
+confusionMatrix(cvPred, crossValidation$classe)
+```
+
+# 7. Predicted Results
+We are fianlly ready for making predictions on the real testing set
+```{r}
+testingPred <- predict(modFit, test_nzv)
+testingPred
+```
