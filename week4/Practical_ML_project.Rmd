@@ -170,10 +170,47 @@ and cross validation set, respectively:
 cvPred <- predict(modFit, crossValidation)
 confusionMatrix(cvPred, crossValidation$classe)
 ```
+```{r, eval = FALSE}
+## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction    A    B    C    D    E
+##          A 1394    2    0    0    0
+##          B    1  946    4    0    0
+##          C    0    1  847    5    1
+##          D    0    0    4  799    1
+##          E    0    0    0    0  899
+## 
+## Overall Statistics
+##                                          
+##                Accuracy : 0.9961         
+##                  95% CI : (0.994, 0.9977)
+##     No Information Rate : 0.2845         
+##     P-Value [Acc > NIR] : < 2.2e-16      
+##                                          
+##                   Kappa : 0.9951         
+##  Mcnemar's Test P-Value : NA             
+## 
+## Statistics by Class:
+## 
+##                      Class: A Class: B Class: C Class: D Class: E
+## Sensitivity            0.9993   0.9968   0.9906   0.9938   0.9978
+## Specificity            0.9994   0.9987   0.9983   0.9988   1.0000
+## Pos Pred Value         0.9986   0.9947   0.9918   0.9938   1.0000
+## Neg Pred Value         0.9997   0.9992   0.9980   0.9988   0.9995
+## Prevalence             0.2845   0.1935   0.1743   0.1639   0.1837
+## Detection Rate         0.2843   0.1929   0.1727   0.1629   0.1833
+## Detection Prevalence   0.2847   0.1939   0.1741   0.1639   0.1833
+## Balanced Accuracy      0.9994   0.9978   0.9945   0.9963   0.9989
+```
 
 # 7. Predicted Results
 We are fianlly ready for making predictions on the real testing set
 ```{r}
 testingPred <- predict(modFit, test_nzv)
 testingPred
+```
+```{r, eval = FALSE}
+##  [1] B A B A A E D B A A B C B A E E A B B B
+## Levels: A B C D E
 ```
